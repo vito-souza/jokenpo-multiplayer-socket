@@ -54,7 +54,8 @@ public class ClientHandler implements Runnable {
     }
 
     /**
-     * Envia uma mensagem para todos os clients conectados ao servidor.
+     * Envia uma mensagem para todos os clients conectados ao servidor, exceto para
+     * o client que a enviou.
      * 
      * @param message Mensagem a ser enviada no server.
      */
@@ -74,6 +75,25 @@ public class ClientHandler implements Runnable {
                 }
             } catch (IOException e) {
                 closeConnection(socket, reader, writer); // Encerra a conexão.
+            }
+        });
+    }
+
+    /**
+     * Envia uma mensagem para todos os clients conectados ao servidor.
+     * 
+     * @param message Mensagem a ser enviada para todos os clients.
+     */
+    public void sendServerMessage(String message) {
+        // Percorre a lista de usuários conectados.
+        clients.forEach(client -> {
+            try {
+                // Envia a mensagem para todos os clientes conectados.
+                client.writer.write("🖥️: " + message); // Envia a mensagem.
+                client.writer.newLine(); // Adiciona uma nova linha.
+                client.writer.flush(); // Garante que a mensagem seja enviada.
+            } catch (IOException e) {
+                closeConnection(socket, reader, writer); // Encerra a conexão se houver erro.
             }
         });
     }
@@ -237,6 +257,7 @@ public class ClientHandler implements Runnable {
      * Através das jogadas dos dois jogadores, calcula o resultado.
      */
     public void play() {
+        // Verifica se o jogador não realizou sua escolha.
         if (playerChoice == null) {
             sendMessageToClient("Você ainda não escolheu sua jogada.");
             return; // Interrompe a execução do método play().
@@ -246,7 +267,7 @@ public class ClientHandler implements Runnable {
         for (ClientHandler client : clients) {
             if (!client.equals(this) && client.isPlayer() && client.playerChoice == null) {
                 sendMessageToClient(client.username + " ainda não fez sua jogada.");
-                return; // Aqui o código seria interrompido se a condição for atendida
+                return; // Interrompe a execução.
             }
         }
     }

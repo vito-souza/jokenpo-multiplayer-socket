@@ -19,6 +19,7 @@ public class Server {
         try {
             // Mantém o server aberto até que o host o desligue:
             while (!serverSocket.isClosed()) {
+                System.out.println("Servidor iniciado na porta: " + serverSocket.getLocalPort());
                 Socket socket = serverSocket.accept(); // Aceita a conexão de um jogador ao server.
 
                 ClientHandler clientHandler = new ClientHandler(socket); // Instância um novo handler.
