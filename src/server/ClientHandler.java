@@ -156,7 +156,7 @@ public class ClientHandler implements Runnable {
      * @param command Comando sendo executado pelo player.
      */
     public void playerCommand(String command) {
-        if (playerChoice != null) {
+        if (!command.equals("/jogar") && playerChoice != null) {
             sendMessageToClient("Você já escolheu " + playerChoice + ".");
             return; // Sai da função.
         }
@@ -172,11 +172,12 @@ public class ClientHandler implements Runnable {
             case "/tesoura":
                 playerChoice = "tesoura";
                 break;
-            case "/comandos":
-                break;
+            case "/jogar":
+                play();
+                return; // Sai do método.
             default:
                 sendMessageToClient("Comando inválido! Digite /comandos para uma lista de comandos válidos.");
-                return; // Sai do método em caso de comando inválido
+                return; // Sai do método em caso de comando inválido.
         }
 
         sendMessageToClient("Você escolheu " + playerChoice + ".");
@@ -204,18 +205,21 @@ public class ClientHandler implements Runnable {
                     String[] parts = message.split(":"); // Divide a mensagem no nome de usuário.
                     message = parts[1].trim(); // Mantém a parte após o nome de usuário e status.
 
+                    // Se o client utilizou o comando de sair:
                     if (message.startsWith("/sair")) {
                         closeConnection(socket, reader, writer); // Encerra a conexão.
                         break; // Encerra o loop.
                     }
 
+                    // Se o client deseja ver a lista de comandos:
                     if (message.startsWith("/comandos")) {
-                        // Confirma a escolha para o jogador
                         sendMessageToClient("Comandos disponíveis: /comandos, /sair, /pedra, /papel e /tesoura.");
                         continue;
                     }
 
-                    if (isPlayer()) // Se for um jogador, recebe entradas exclusivas.
+                    // Se for um jogador e não executou os comandos acima, verifica a entrada do
+                    // comando:
+                    if (isPlayer())
                         playerCommand(message); // Trata as entradas.
                     else
                         sendMessageToClient("Você deve ser um jogador para executar este comando.");
@@ -225,6 +229,24 @@ public class ClientHandler implements Runnable {
             } catch (IOException e) {
                 closeConnection(socket, reader, writer); // Encerra a conexão.
                 break; // Para de aguardar mensages.
+            }
+        }
+    }
+
+    /**
+     * Através das jogadas dos dois jogadores, calcula o resultado.
+     */
+    public void play() {
+        if (playerChoice == null) {
+            sendMessageToClient("Você ainda não escolheu sua jogada.");
+            return; // Interrompe a execução do método play().
+        }
+
+        // Aqui está o código que verifica o outro jogador
+        for (ClientHandler client : clients) {
+            if (!client.equals(this) && client.isPlayer() && client.playerChoice == null) {
+                sendMessageToClient(client.username + " ainda não fez sua jogada.");
+                return; // Aqui o código seria interrompido se a condição for atendida
             }
         }
     }
