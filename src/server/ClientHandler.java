@@ -47,7 +47,6 @@ public class ClientHandler implements Runnable {
             this.reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             this.writer = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
             this.username = reader.readLine(); // Recebe o username do client.
-
             userJoined(); // Adiciona o usuário ao servidor.
         } catch (IOException e) {
             e.printStackTrace();
@@ -95,9 +94,9 @@ public class ClientHandler implements Runnable {
                 + " Digite /comandos para a lista de comandos 😉.");
 
         if (isPlayer())
-            broadcastMessage("\n🖥️: " + username + " entrou na partida 🎮!\n", false);
+            broadcastMessage("🖥️: " + username + " entrou na partida 🎮!", false);
         else
-            broadcastMessage("\n🖥️: " + username + " está assistindo à partida 👀!\n", false);
+            broadcastMessage("🖥️: " + username + " está assistindo à partida 👀!", false);
     }
 
     /**
@@ -106,7 +105,7 @@ public class ClientHandler implements Runnable {
     public void userLeft() {
         clients.remove(this); // Remove o jogador da lista de conectados.
 
-        broadcastMessage("\n🖥️: " + username + " saiu do servidor 😔!\n", false);
+        broadcastMessage("🖥️: " + username + " saiu do servidor 😔!", false);
         System.out.println(username + " saiu do servidor!"); // Log no servidor.
     }
 
@@ -117,7 +116,7 @@ public class ClientHandler implements Runnable {
      */
     private void sendMessageToClient(String message) {
         try {
-            writer.write("\n🖥️: " + message + "\n");
+            writer.write("🖥️: " + message);
             writer.newLine();
             writer.flush();
         } catch (IOException e) {
@@ -181,6 +180,7 @@ public class ClientHandler implements Runnable {
         }
 
         sendMessageToClient("Você escolheu " + playerChoice + ".");
+        broadcastMessage("🖥️: " + username + " escolheu sua jogada.", false);
     }
 
     /** Aguarda por mensagens vindas do client. */

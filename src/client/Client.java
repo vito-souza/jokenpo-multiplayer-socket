@@ -81,7 +81,7 @@ public class Client {
                         // Se não estiver recebendo mais mensagens.
                         if (serverMessage == null) {
                             closeConnection(socket, reader, writer); // Encerra as conexões.
-                            System.out.println("Conexão encerrada com o host.");
+                            System.out.println("\n🚨 Conexão encerrada com o host.");
                             break; // Sai do loop.
                         }
 
@@ -128,11 +128,12 @@ public class Client {
     public static void main(String[] args) throws IOException {
         Scanner scanner = new Scanner(System.in); // Scanner para receber entradas do usuário.
 
-        System.out.print("Insira um nome de usuário: ");
+        System.out.print("➡️ Insira um nome de usuário: ");
 
         String username = scanner.nextLine(); // Nome de usuário.
-        Socket socket = new Socket("localhost", 7070); // Socket de conexão com o server.
+        System.out.println(); // Pulando uma linha.
 
+        Socket socket = new Socket("localhost", 7070); // Socket de conexão com o server.
         Client client = new Client(socket, username); // Instânciando um novo client.
 
         client.listenForMessage(); // Recebe mensagens vindas do server.
