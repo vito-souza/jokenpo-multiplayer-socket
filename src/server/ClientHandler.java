@@ -128,7 +128,15 @@ public class ClientHandler implements Runnable {
      * @param command Comando sendo executado pelo player.
      */
     public void playerCommand(String command) {
-
+        try {
+            if (command.contains("/teste")) {
+                writer.write("executou"); // Imprime a mensagem para o client.
+                writer.newLine(); // Para de aguardar por uma mensagem.
+                writer.flush();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     /** Aguarda por mensagens vindas do client. */
@@ -142,14 +150,25 @@ public class ClientHandler implements Runnable {
                 message = reader.readLine(); // Recebe a mensagem do usuário.
 
                 // Se não receber mais mensagens ou se o usuário sair:
-                if (message == null || message.trim().contains("/exit")) {
+                if (message == null) {
                     closeConnection(socket, reader, writer); // Encerra a conexão.
                     break; // Para de aguardar mensagens (sai do loop).
                 }
 
                 // Verifica se o player executou um comando.
-                if (isPlayer() && message.contains("^/")) {
-                    playerCommand(message); // Processa o comando do jogador.
+                if (message.trim().contains("/")) {
+                    String[] parts = message.split(":"); // Divide a mensagem no nome de usuário.
+
+                    if (parts.length > 1)
+                        message = parts[1].trim(); // Mantém a parte após o nome de usuário e status.
+
+                    if (message.startsWith("/exit")) {
+                        closeConnection(socket, reader, writer); // Encerra a conexão.
+                        break; // Encerra o loop.
+                    }
+
+                    if (isPlayer()) // Se for um jogador, recebe entradas exclusivas.
+                        playerCommand(message); // Trata as entradas.
                 } else {
                     broadcastMessage(message, true); // Envia a mensagens para todos os usuários.
                 }
