@@ -29,6 +29,9 @@ public class ClientHandler implements Runnable {
     /** Número máximo de jogadores por partida. */
     private static final int MAX_PLAYERS = 2;
 
+    /** Jogada efetuada pelo usuário. */
+    private String playerChoice;
+
     private String username;
 
     public String getUsername() {
@@ -45,8 +48,7 @@ public class ClientHandler implements Runnable {
             this.writer = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
             this.username = reader.readLine(); // Recebe o username do client.
 
-            clients.add(this); // Adicionando o usuário ao array de clients.
-            broadcastMessage("SERVER: " + username + " entrou no servidor!", false);
+            userJoined(); // Adiciona o usuário ao servidor.
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -78,13 +80,49 @@ public class ClientHandler implements Runnable {
     }
 
     /**
+     * Verifica se o client é um jogador ou um espectador.
+     * 
+     * @return {@code true} se for um jogador, {@code false} se for um espectador.
+     */
+    public boolean isPlayer() {
+        return clients.indexOf(this) < MAX_PLAYERS; // Verifica se é um jogador ou espectador.
+    }
+
+    /** Informa que um client se conectou ao servidor. */
+    public void userJoined() {
+        clients.add(this); // Adiciona o client à lista de usuários conectados.
+        sendMessageToClient("Você entrou como " + ((isPlayer()) ? "jogador." : "espectador.")
+                + " Digite /comandos para a lista de comandos 😉.");
+
+        if (isPlayer())
+            broadcastMessage("\n🖥️: " + username + " entrou na partida 🎮!\n", false);
+        else
+            broadcastMessage("\n🖥️: " + username + " está assistindo à partida 👀!\n", false);
+    }
+
+    /**
      * Remove e informa que um client se desconectou do servidor.
      */
     public void userLeft() {
         clients.remove(this); // Remove o jogador da lista de conectados.
 
-        broadcastMessage("SERVER: " + username + " saiu do servidor!", false);
+        broadcastMessage("\n🖥️: " + username + " saiu do servidor 😔!\n", false);
         System.out.println(username + " saiu do servidor!"); // Log no servidor.
+    }
+
+    /**
+     * Envia uma mensagem exclusivamente para o cliente.
+     * 
+     * @param message Mensagem a ser enviada.
+     */
+    private void sendMessageToClient(String message) {
+        try {
+            writer.write("\n🖥️: " + message + "\n");
+            writer.newLine();
+            writer.flush();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     /**
@@ -113,30 +151,36 @@ public class ClientHandler implements Runnable {
     }
 
     /**
-     * Verifica se o client é um jogador ou um espectador.
-     * 
-     * @return {@code true} se for um jogador, {@code false} se for um espectador.
-     */
-    public boolean isPlayer() {
-        return clients.indexOf(this) < MAX_PLAYERS; // Verifica se é um jogador ou espectador.
-    }
-
-    /**
      * 
      * Lida com os comandos executados pelos jogadores (não espectadores).
      * 
      * @param command Comando sendo executado pelo player.
      */
     public void playerCommand(String command) {
-        try {
-            if (command.contains("/teste")) {
-                writer.write("executou"); // Imprime a mensagem para o client.
-                writer.newLine(); // Para de aguardar por uma mensagem.
-                writer.flush();
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
+        if (playerChoice != null) {
+            sendMessageToClient("Você já escolheu " + playerChoice + ".");
+            return; // Sai da função.
         }
+
+        // Processando os comandos do usuário:
+        switch (command.trim()) {
+            case "/pedra":
+                playerChoice = "pedra";
+                break;
+            case "/papel":
+                playerChoice = "papel";
+                break;
+            case "/tesoura":
+                playerChoice = "tesoura";
+                break;
+            case "/comandos":
+                break;
+            default:
+                sendMessageToClient("Comando inválido! Digite /comandos para uma lista de comandos válidos.");
+                return; // Sai do método em caso de comando inválido
+        }
+
+        sendMessageToClient("Você escolheu " + playerChoice + ".");
     }
 
     /** Aguarda por mensagens vindas do client. */
@@ -158,17 +202,23 @@ public class ClientHandler implements Runnable {
                 // Verifica se o player executou um comando.
                 if (message.trim().contains("/")) {
                     String[] parts = message.split(":"); // Divide a mensagem no nome de usuário.
+                    message = parts[1].trim(); // Mantém a parte após o nome de usuário e status.
 
-                    if (parts.length > 1)
-                        message = parts[1].trim(); // Mantém a parte após o nome de usuário e status.
-
-                    if (message.startsWith("/exit")) {
+                    if (message.startsWith("/sair")) {
                         closeConnection(socket, reader, writer); // Encerra a conexão.
                         break; // Encerra o loop.
                     }
 
+                    if (message.startsWith("/comandos")) {
+                        // Confirma a escolha para o jogador
+                        sendMessageToClient("Comandos disponíveis: /comandos, /sair, /pedra, /papel e /tesoura.");
+                        continue;
+                    }
+
                     if (isPlayer()) // Se for um jogador, recebe entradas exclusivas.
                         playerCommand(message); // Trata as entradas.
+                    else
+                        sendMessageToClient("Você deve ser um jogador para executar este comando.");
                 } else {
                     broadcastMessage(message, true); // Envia a mensagens para todos os usuários.
                 }
