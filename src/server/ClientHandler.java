@@ -55,10 +55,18 @@ public class ClientHandler implements Runnable {
     }
 
     /**
-     * Envia uma mensagem para todos os clients conectados ao servidor, exceto para
-     * o client que a enviou.
+     * Envia uma mensagem para todos os clientes conectados ao servidor, exceto para
+     * o cliente que a enviou.
      * 
-     * @param message Mensagem a ser enviada no server.
+     * O método permite a adição de um prefixo, dependendo se o cliente é um jogador
+     * ou espectador, para personalizar a mensagem. Caso um erro ocorra durante o
+     * envio
+     * da mensagem, a conexão com o cliente é encerrada.
+     * 
+     * @param message   A mensagem a ser enviada para todos os clientes, exceto o
+     *                  que a enviou.
+     * @param addPrefix Se {@code true}, adiciona um prefixo indicando se o cliente
+     *                  é um jogador ou espectador.
      */
     public void broadcastMessage(String message, boolean addPrefix) {
         String playerStatus = addPrefix ? ((isPlayer()) ? "[jogador] " : "[espectador] ") : "";
@@ -81,9 +89,15 @@ public class ClientHandler implements Runnable {
     }
 
     /**
-     * Envia uma mensagem para todos os clients conectados ao servidor.
+     * Envia uma mensagem para todos os clientes conectados ao servidor.
      * 
-     * @param message Mensagem a ser enviada para todos os clients.
+     * Este método percorre a lista de clientes conectados e envia uma mensagem para
+     * cada um,
+     * prefixando com "🖥️:" para indicar que é uma mensagem do servidor. Caso
+     * ocorra um erro ao
+     * enviar a mensagem, a conexão com o cliente é encerrada.
+     * 
+     * @param message Mensagem a ser enviada para todos os clientes.
      */
     public void sendServerMessage(String message) {
         // Percorre a lista de usuários conectados.
@@ -100,40 +114,11 @@ public class ClientHandler implements Runnable {
     }
 
     /**
-     * Verifica se o client é um jogador ou um espectador.
+     * Envia uma mensagem exclusivamente para o cliente conectado.
+     * A mensagem é precedida pelo ícone 🖥️ e é enviada ao cliente por meio do
+     * writer.
      * 
-     * @return {@code true} se for um jogador, {@code false} se for um espectador.
-     */
-    public boolean isPlayer() {
-        return clients.indexOf(this) < MAX_PLAYERS; // Verifica se é um jogador ou espectador.
-    }
-
-    /** Informa que um client se conectou ao servidor. */
-    public void userJoined() {
-        clients.add(this); // Adiciona o client à lista de usuários conectados.
-        sendMessageToClient("Você entrou como " + ((isPlayer()) ? "jogador." : "espectador.")
-                + " Digite /comandos para a lista de comandos 😉.");
-
-        if (isPlayer())
-            broadcastMessage("🖥️: " + username + " entrou na partida 🎮!", false);
-        else
-            broadcastMessage("🖥️: " + username + " está assistindo à partida 👀!", false);
-    }
-
-    /**
-     * Remove e informa que um client se desconectou do servidor.
-     */
-    public void userLeft() {
-        clients.remove(this); // Remove o jogador da lista de conectados.
-
-        broadcastMessage("🖥️: " + username + " saiu do servidor 😔!", false);
-        System.out.println(username + " saiu do servidor!"); // Log no servidor.
-    }
-
-    /**
-     * Envia uma mensagem exclusivamente para o cliente.
-     * 
-     * @param message Mensagem a ser enviada.
+     * @param message A mensagem a ser enviada ao cliente.
      */
     private void sendMessageToClient(String message) {
         try {
@@ -146,11 +131,65 @@ public class ClientHandler implements Runnable {
     }
 
     /**
-     * Encerra a conexão do client e fecha os objetos reader e writer.
+     * Verifica se o cliente é um jogador ou um espectador, com base em sua posição
+     * na lista de clientes.
      * 
-     * @param socket Socket de conexão.
-     * @param reader BufferedReader.
-     * @param writer BufferedWriter.
+     * O método considera que os primeiros {@code MAX_PLAYERS} clientes na lista são
+     * jogadores,
+     * e os demais são espectadores.
+     * 
+     * @return {@code true} se o cliente for um jogador, {@code false} se for um
+     *         espectador.
+     */
+    public boolean isPlayer() {
+        return clients.indexOf(this) < MAX_PLAYERS; // Verifica se é um jogador ou espectador.
+    }
+
+    /**
+     * Informa que um cliente se conectou ao servidor e é adicionado à lista de
+     * usuários conectados.
+     * 
+     * Envia uma mensagem ao cliente informando seu papel (jogador ou espectador) e
+     * oferece a lista de comandos.
+     * Em seguida, transmite uma mensagem a todos os clientes conectados,
+     * notificando sobre a entrada do usuário,
+     * seja como jogador ou espectador.
+     */
+    public void userJoined() {
+        clients.add(this); // Adiciona o client à lista de usuários conectados.
+        sendMessageToClient("Você entrou como " + ((isPlayer()) ? "jogador." : "espectador.")
+                + " Digite /comandos para a lista de comandos 😉.");
+
+        if (isPlayer())
+            broadcastMessage("🖥️: " + username + " entrou na partida 🎮!", false);
+        else
+            broadcastMessage("🖥️: " + username + " está assistindo à partida 👀!", false);
+    }
+
+    /**
+     * Remove o cliente da lista de clientes conectados e notifica os outros
+     * clientes
+     * sobre a desconexão do usuário.
+     * 
+     * A mensagem de saída do usuário é enviada a todos os clientes conectados,
+     * e um log é gerado no servidor.
+     */
+    public void userLeft() {
+        clients.remove(this); // Remove o jogador da lista de conectados.
+
+        broadcastMessage("🖥️: " + username + " saiu do servidor 😔!", false);
+        System.out.println(username + " saiu do servidor!"); // Log no servidor.
+    }
+
+    /**
+     * Encerra a conexão do client e fecha os objetos reader e writer.
+     * Este método é responsável por fechar a conexão com o client, encerrando os
+     * fluxos
+     * de entrada e saída de dados (reader e writer) e o socket de comunicação.
+     * 
+     * @param socket O socket de conexão que será fechado.
+     * @param reader O BufferedReader usado para ler dados do client.
+     * @param writer O BufferedWriter usado para enviar dados ao client.
      */
     public void closeConnection(Socket socket, BufferedReader reader, BufferedWriter writer) {
         userLeft(); // Informa os usuários conectados.
@@ -171,10 +210,12 @@ public class ClientHandler implements Runnable {
     }
 
     /**
-     * 
      * Lida com os comandos executados pelos jogadores (não espectadores).
+     * Este método processa comandos como "/pedra", "/papel", "/tesoura", e "/jogar"
+     * para definir a escolha do jogador ou iniciar a partida.
      * 
-     * @param command Comando sendo executado pelo player.
+     * @param command O comando executado pelo jogador. Pode ser "/pedra", "/papel",
+     *                "/tesoura", ou "/jogar".
      */
     public void playerCommand(String command) {
         if (!command.equals("/jogar") && playerChoice != null) {
@@ -206,7 +247,11 @@ public class ClientHandler implements Runnable {
     }
 
     /**
-     * Verifica se existem dois jogadores no servidor.
+     * Verifica se existem dois jogadores no servidor, contando quantos
+     * clientes estão registrados como jogadores.
+     * 
+     * @return true se houver exatamente dois jogadores no servidor,
+     *         false caso contrário.
      */
     private boolean hasTwoPlayers() {
         int playerCount = 0;
@@ -217,10 +262,22 @@ public class ClientHandler implements Runnable {
             }
         }
 
-        return playerCount == 2;
+        return playerCount == 2; // Retornando a quantidade de clients conectados.
     }
 
-    /** Valida as escolhas dos jogadors e chama o método de calcular resultado */
+    /**
+     * Valida as escolhas dos jogadores e chama o método para calcular o resultado
+     * da partida.
+     * <p>
+     * Este método realiza as seguintes validações:
+     * <ul>
+     * <li>Verifica se há exatamente dois jogadores conectados ao servidor;</li>
+     * <li>Verifica se o jogador atual já fez sua escolha de jogada;</li>
+     * <li>Verifica se o outro jogador também fez sua escolha de jogada.</li>
+     * </ul>
+     * Caso todas as condições sejam atendidas, o método chama o método
+     * {@link #calculateResult()} para calcular o resultado da partida.
+     */
     public void play() {
         // Verifica se há dois jogadores no servidor
         if (!hasTwoPlayers()) {
@@ -247,7 +304,20 @@ public class ClientHandler implements Runnable {
     }
 
     /**
-     * Cálcula o resultado de uma partida.
+     * Calcula o resultado de uma partida de Jokenpo entre dois jogadores.
+     * 
+     * O método compara as escolhas dos dois jogadores (armazenadas em
+     * `playerChoice`) e determina o vencedor
+     * com base nas regras do jogo Jokenpo (Pedra, Papel e Tesoura). Se ambos os
+     * jogadores escolherem a mesma opção,
+     * o resultado é um empate. Caso contrário, o vencedor é determinado conforme as
+     * regras do jogo.
+     * 
+     * Após determinar o vencedor ou o empate, o método envia uma mensagem para o
+     * servidor informando o resultado
+     * e então reinicia o jogo.
+     * 
+     * @see {@link #resetGame()} Para reiniciar o jogo após calcular o resultado.
      */
     public void calculateResult() {
         // Identificando os jogadores:
@@ -264,6 +334,7 @@ public class ClientHandler implements Runnable {
             return; // Encerra o método.
         }
 
+        // Verifica quem ganhou:
         if ((player1.playerChoice.equals("pedra") && player2.playerChoice.equals("tesoura")) ||
                 (player1.playerChoice.equals("tesoura") && player2.playerChoice.equals("papel")) ||
                 (player1.playerChoice.equals("papel") && player2.playerChoice.equals("pedra"))) {
@@ -277,28 +348,45 @@ public class ClientHandler implements Runnable {
         resetGame(); // Reseta o jogo.
     }
 
-    /** Reseta o jogo */
+    /**
+     * Embaralha a lista de clientes, redefinindo os dois primeiros como jogadores e
+     * os demais como espectadores.
+     * Reseta as escolhas dos jogadores e envia mensagens para todos os clientes
+     * informando suas funções.
+     */
     public void resetGame() {
-        // Embaralha a lista de clientes
+        // Embaralha a lista de clientes.
         Collections.shuffle(clients);
 
-        // Itera sobre a lista de clientes
+        // Itera sobre a lista de clientes.
         for (int i = 0; i < clients.size(); i++) {
             ClientHandler client = clients.get(i);
 
-            if (i < 2) { // Os dois primeiros clientes serão jogadores
-                client.playerChoice = null; // Reseta a escolha do jogador
+            if (i < 2) { // Os dois primeiros clientes serão jogadores.
+                client.playerChoice = null; // Reseta a escolha do jogador.
                 client.sendMessageToClient("Você agora é um jogador. Escolha sua jogada.");
-            } else { // Os outros clientes serão espectadores
+            } else { // Os outros clientes serão espectadores.
                 client.sendMessageToClient("Você é um espectador.");
             }
         }
 
-        // Envia uma mensagem para todos os clientes (jogadores e espectadores)
-        sendServerMessage("O jogo foi reiniciado! Escolham suas jogadas.");
+        // Envia uma mensagem para todos os clientes (jogadores e espectadores).
+        sendServerMessage("\nO jogo foi reiniciado! Escolham suas jogadas.");
     }
 
-    /** Aguarda por mensagens vindas do client. */
+    /**
+     * Aguarda por mensagens do cliente e processa comandos ou transmite mensagens.
+     * 
+     * O método executa um loop enquanto a conexão do cliente estiver ativa. Ele
+     * aguarda mensagens do cliente,
+     * processa comandos específicos (como /sair, /comandos, ou jogadas de pedra,
+     * papel e tesoura),
+     * e as transmite para outros clientes ou processa as ações de jogador conforme
+     * apropriado.
+     * 
+     * Se o cliente enviar uma mensagem de desconexão ou ocorrer um erro de leitura,
+     * a conexão é encerrada.
+     */
     @Override
     public void run() {
         String message; // Mensagem enviada pelo usuário.
