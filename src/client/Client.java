@@ -133,7 +133,7 @@ public class Client {
         String username = scanner.nextLine(); // Nome de usuário.
         System.out.println(); // Pulando uma linha.
 
-        Socket socket = new Socket("localhost", 7070); // Socket de conexão com o server.
+        Socket socket = new Socket("localhost", 7777); // Socket de conexão com o server.
         Client client = new Client(socket, username); // Instânciando um novo client.
 
         client.listenForMessage(); // Recebe mensagens vindas do server.

@@ -49,7 +49,7 @@ public class Server {
      * @param args
      */
     public static void main(String[] args) throws IOException {
-        Server server = new Server(new ServerSocket(7070)); // Instânciando um novo servidor.
+        Server server = new Server(new ServerSocket(7777)); // Instânciando um novo servidor.
         server.runServer(); // Rodando o servidor.
     }
 }

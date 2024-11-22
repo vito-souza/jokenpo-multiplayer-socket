@@ -104,7 +104,7 @@ public class ClientHandler implements Runnable {
         clients.forEach(client -> {
             try {
                 // Envia a mensagem para todos os clientes conectados.
-                client.writer.write("🖥️: " + message); // Envia a mensagem.
+                client.writer.write("📢: " + message); // Envia a mensagem.
                 client.writer.newLine(); // Adiciona uma nova linha.
                 client.writer.flush(); // Garante que a mensagem seja enviada.
             } catch (IOException e) {
@@ -243,7 +243,7 @@ public class ClientHandler implements Runnable {
         }
 
         sendMessageToClient("Você escolheu " + playerChoice + ".");
-        broadcastMessage("🖥️: " + username + " escolheu sua jogada.", false);
+        broadcastMessage("📢: " + username + " escolheu sua jogada.", false);
     }
 
     /**
@@ -331,7 +331,7 @@ public class ClientHandler implements Runnable {
         // Se os dois jogadores escolheram a mesma coisa:
         if (player1.playerChoice.equals(player2.playerChoice)) {
             sendServerMessage("Ambos os jogadores escolheram " + player1.playerChoice + ". Empate 🔥!");
-            return; // Encerra o método.
+            resetGame(); // Reseta a partida.
         }
 
         // Verifica quem ganhou:
@@ -371,7 +371,7 @@ public class ClientHandler implements Runnable {
         }
 
         // Envia uma mensagem para todos os clientes (jogadores e espectadores).
-        sendServerMessage("\nO jogo foi reiniciado! Escolham suas jogadas.");
+        sendServerMessage("O jogo foi reiniciado! Escolham suas jogadas ✅.\n");
     }
 
     /**
@@ -415,7 +415,7 @@ public class ClientHandler implements Runnable {
 
                     // Se o client deseja ver a lista de comandos:
                     if (message.startsWith("/comandos")) {
-                        sendMessageToClient("Comandos disponíveis: /comandos, /sair, /pedra, /papel e /tesoura.");
+                        sendMessageToClient("Comandos disponíveis: /jogar, /sair, /pedra, /papel e /tesoura.");
                         continue;
                     }
 
