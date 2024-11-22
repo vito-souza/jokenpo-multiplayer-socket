@@ -7,6 +7,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -204,6 +205,99 @@ public class ClientHandler implements Runnable {
         broadcastMessage("🖥️: " + username + " escolheu sua jogada.", false);
     }
 
+    /**
+     * Verifica se existem dois jogadores no servidor.
+     */
+    private boolean hasTwoPlayers() {
+        int playerCount = 0;
+
+        for (ClientHandler client : clients) {
+            if (client.isPlayer()) {
+                playerCount++;
+            }
+        }
+
+        return playerCount == 2;
+    }
+
+    /** Valida as escolhas dos jogadors e chama o método de calcular resultado */
+    public void play() {
+        // Verifica se há dois jogadores no servidor
+        if (!hasTwoPlayers()) {
+            sendMessageToClient("Aguardando outro jogador conectar para iniciar a partida.");
+            return;
+        }
+
+        // Verifica se o jogador atual já escolheu sua jogada
+        if (playerChoice == null) {
+            sendMessageToClient("Você ainda não escolheu sua jogada.");
+            return;
+        }
+
+        // Verifica se o outro jogador fez sua escolha
+        for (ClientHandler client : clients) {
+            if (!client.equals(this) && client.isPlayer() && client.playerChoice == null) {
+                sendMessageToClient(client.username + " ainda não fez sua jogada.");
+                return;
+            }
+        }
+
+        // Calcula o resultado da partida
+        calculateResult();
+    }
+
+    /**
+     * Cálcula o resultado de uma partida.
+     */
+    public void calculateResult() {
+        // Identificando os jogadores:
+        ClientHandler player1 = clients.get(0);
+        ClientHandler player2 = clients.get(1);
+
+        // Verifica se ambos fizeram suas escolhas
+        if (player1.playerChoice == null || player2.playerChoice == null)
+            return; // Não processa se as escolhas não forem feitas.
+
+        // Se os dois jogadores escolheram a mesma coisa:
+        if (player1.playerChoice.equals(player2.playerChoice)) {
+            sendServerMessage("Ambos os jogadores escolheram " + player1.playerChoice + ". Empate 🔥!");
+            return; // Encerra o método.
+        }
+
+        if ((player1.playerChoice.equals("pedra") && player2.playerChoice.equals("tesoura")) ||
+                (player1.playerChoice.equals("tesoura") && player2.playerChoice.equals("papel")) ||
+                (player1.playerChoice.equals("papel") && player2.playerChoice.equals("pedra"))) {
+            sendServerMessage(
+                    player1.username + " venceu! (" + player1.playerChoice + " vs. " + player2.playerChoice + ") 🔥!");
+        } else {
+            sendServerMessage(
+                    player2.username + " venceu! (" + player2.playerChoice + " vs. " + player1.playerChoice + ") 🔥!");
+        }
+
+        resetGame(); // Reseta o jogo.
+    }
+
+    /** Reseta o jogo */
+    public void resetGame() {
+        // Embaralha a lista de clientes
+        Collections.shuffle(clients);
+
+        // Itera sobre a lista de clientes
+        for (int i = 0; i < clients.size(); i++) {
+            ClientHandler client = clients.get(i);
+
+            if (i < 2) { // Os dois primeiros clientes serão jogadores
+                client.playerChoice = null; // Reseta a escolha do jogador
+                client.sendMessageToClient("Você agora é um jogador. Escolha sua jogada.");
+            } else { // Os outros clientes serão espectadores
+                client.sendMessageToClient("Você é um espectador.");
+            }
+        }
+
+        // Envia uma mensagem para todos os clientes (jogadores e espectadores)
+        sendServerMessage("O jogo foi reiniciado! Escolham suas jogadas.");
+    }
+
     /** Aguarda por mensagens vindas do client. */
     @Override
     public void run() {
@@ -249,25 +343,6 @@ public class ClientHandler implements Runnable {
             } catch (IOException e) {
                 closeConnection(socket, reader, writer); // Encerra a conexão.
                 break; // Para de aguardar mensages.
-            }
-        }
-    }
-
-    /**
-     * Através das jogadas dos dois jogadores, calcula o resultado.
-     */
-    public void play() {
-        // Verifica se o jogador não realizou sua escolha.
-        if (playerChoice == null) {
-            sendMessageToClient("Você ainda não escolheu sua jogada.");
-            return; // Interrompe a execução do método play().
-        }
-
-        // Aqui está o código que verifica o outro jogador
-        for (ClientHandler client : clients) {
-            if (!client.equals(this) && client.isPlayer() && client.playerChoice == null) {
-                sendMessageToClient(client.username + " ainda não fez sua jogada.");
-                return; // Interrompe a execução.
             }
         }
     }
